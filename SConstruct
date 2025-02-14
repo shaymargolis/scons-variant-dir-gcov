@@ -23,6 +23,25 @@ def create_variant(env, variant, variant_define):
 # SCons environment
 env = Environment()
 
+def wrap_variant_dir(bld):
+    def wrapper(variant_dir, orig_dir, **kwargs):
+        variant_dir_p = Path(variant_dir)
+        orig_dir_p = Path(orig_dir)
+
+        variant_dir_p.mkdir(parents=True, exist_ok=True)
+        variant_dir_txt = Path(variant_dir) / "variant_dir.txt"
+        variant_dir_txt.write_text(json.dumps({
+            "src": str(orig_dir_p.resolve()),
+            "dst": str(variant_dir_p.resolve()),
+        }))
+
+        return bld(variant_dir, orig_dir, **kwargs)
+
+    return wrapper
+
+obj_bld = env.VariantDir
+env.VariantDir = wrap_variant_dir(obj_bld)
+
 env.Append(LINKFLAGS=["--coverage"], CPPFLAGS=['--coverage'])
 
 # Create three variants with different defines
